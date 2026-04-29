@@ -58,34 +58,14 @@ class Job:
         return f"📢 새 채용공고!\n🏢 {self.company}\n💼 {self.title}{dept}\n🔗 {self.url}"
 
 
-# ── 카카오 알림 ──────────────────────────────────────────────
-def refresh_kakao_token(api_key: str, refresh_token: str) -> str:
-    resp = requests.post("https://kauth.kakao.com/oauth/token", data={
-        "grant_type": "refresh_token",
-        "client_id": api_key,
-        "refresh_token": refresh_token,
-    }, timeout=10)
-    data = resp.json()
-    if "access_token" not in data:
-        raise Exception(f"토큰 갱신 실패: {data}")
-    return data["access_token"]
-
-
-def send_kakao(access_token: str, text: str):
-    template = json.dumps({
-        "object_type": "text",
-        "text": text[:400],
-        "link": {"web_url": "", "mobile_web_url": ""},
-    })
-    resp = requests.post(
-        "https://kapi.kakao.com/v2/api/talk/memo/default/send",
-        headers={"Authorization": f"Bearer {access_token}"},
-        data={"template_object": template},
+# ── ntfy 알림 ────────────────────────────────────────────────
+def send_ntfy(topic: str, text: str):
+    requests.post(
+        f"https://ntfy.sh/{topic}",
+        data=text.encode("utf-8"),
+        headers={"Title": "새 채용공고!", "Priority": "high"},
         timeout=10,
     )
-    result = resp.json()
-    if result.get("result_code") != 0:
-        print(f"  ⚠️  카카오 전송 실패: {result}")
 
 
 # ── seen_jobs 저장/로드 ──────────────────────────────────────
@@ -406,16 +386,14 @@ SCRAPERS = [
 
 
 def main():
-    api_key = os.environ.get("KAKAO_REST_API_KEY", "")
-    refresh_token = os.environ.get("KAKAO_REFRESH_TOKEN", "")
+    ntfy_topic = os.environ.get("NTFY_TOPIC", "")
 
-    if not api_key or not refresh_token:
-        print("❌ KAKAO_REST_API_KEY / KAKAO_REFRESH_TOKEN 환경변수 없음")
+    if not ntfy_topic:
+        print("❌ NTFY_TOPIC 환경변수 없음")
         sys.exit(1)
 
     print(f"[{__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M')}] 모니터링 시작")
 
-    access_token = refresh_kakao_token(api_key, refresh_token)
     seen = load_seen()
     new_count = 0
 
@@ -428,7 +406,7 @@ def main():
             print(f"  [{key}] 전체 {len(jobs)}개 → 문과 {len(humanities)}개 → 신규 {len(fresh)}개")
 
             for job in fresh:
-                send_kakao(access_token, job.to_message())
+                send_ntfy(ntfy_topic, job.to_message())
                 seen[key].append(job.job_id)
                 new_count += 1
                 time.sleep(0.5)
