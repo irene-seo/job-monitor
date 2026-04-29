@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><title>카카오 인증</title></head>
+<body>
+<script>
+  const code = new URLSearchParams(window.location.search).get('code');
+  if (code) {
+    document.body.innerHTML =
+      '<h2>✅ 아래 코드를 터미널에 붙여넣어줘!</h2>' +
+      '<p style="font-size:18px;word-break:break-all;background:#f0f0f0;padding:16px">' + code + '</p>';
+  } else {
+    document.body.innerHTML = '<p>코드가 없어요. 다시 시도해주세요.</p>';
+  }
+</script>
+</body>
+</html>

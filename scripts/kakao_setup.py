@@ -1,50 +1,58 @@
 #!/usr/bin/env python3
-"""
-카카오 OAuth 토큰 발급 - 최초 1회만 실행하면 됨
-실행 후 출력된 KAKAO_REFRESH_TOKEN을 GitHub Secret에 저장
-"""
+"""카카오 OAuth 토큰 발급 - 최초 1회만 실행"""
 
 import requests
 import webbrowser
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse, parse_qs
 
-# IODAY 앱 키 or 새 앱 키
-# developers.kakao.com → 내 애플리케이션 → 앱 키 → REST API 키
-KAKAO_REST_API_KEY = input("카카오 REST API 키 입력: ").strip()
-REDIRECT_URI = "https://localhost"  # 앱 설정에서 이 URI 등록 필요
+# IODAY 앱에 등록된 Redirect URI
+REDIRECT_URI = "https://irene-seo.github.io/job-monitor/callback.html"
 
-# 1단계: 인증 URL로 이동
-params = {
-    "client_id": KAKAO_REST_API_KEY,
-    "redirect_uri": REDIRECT_URI,
-    "response_type": "code",
-    "scope": "talk_message",
-}
-auth_url = "https://kauth.kakao.com/oauth/authorize?" + urlencode(params)
 
-print("\n브라우저에서 카카오 로그인 후 리다이렉트된 URL을 복사해줘")
-print("(https://localhost?code=XXXX 형태)")
-webbrowser.open(auth_url)
+def main():
+    api_key = input("IODAY REST API 키 입력: ").strip()
 
-code = input("\n리다이렉트 URL 붙여넣기: ").strip()
-if "code=" in code:
-    code = code.split("code=")[1].split("&")[0]
+    auth_url = "https://kauth.kakao.com/oauth/authorize?" + urlencode({
+        "client_id": api_key,
+        "redirect_uri": REDIRECT_URI,
+        "response_type": "code",
+        "scope": "talk_message",
+    })
 
-# 2단계: 토큰 발급
-resp = requests.post("https://kauth.kakao.com/oauth/token", data={
-    "grant_type": "authorization_code",
-    "client_id": KAKAO_REST_API_KEY,
-    "redirect_uri": REDIRECT_URI,
-    "code": code,
-})
-data = resp.json()
+    print("\n아래 URL을 복사해서 시크릿 창에 붙여넣어줘!")
+    print("(로그인 후 주소창이 https://localhost?code=XXXX 로 바뀔 거야)\n")
+    print(f"👉 {auth_url}\n")
 
-if "refresh_token" not in data:
-    print("오류:", data)
-else:
-    print("\n===== GitHub Secrets에 저장할 값 =====")
-    print(f"KAKAO_REST_API_KEY = {KAKAO_REST_API_KEY}")
+    url_or_code = input("주소창 URL 붙여넣기: ").strip()
+
+    # URL에서 code 추출
+    if "code=" in url_or_code:
+        code = parse_qs(urlparse(url_or_code).query).get("code", [url_or_code])[0]
+    else:
+        code = url_or_code
+
+    print(f"\n[확인] 사용 중인 키: {api_key[:6]}...{api_key[-4:]}")
+    print(f"[확인] 코드: {code[:10]}...")
+
+    # 토큰 발급
+    resp = requests.post("https://kauth.kakao.com/oauth/token", data={
+        "grant_type": "authorization_code",
+        "client_id": api_key,
+        "redirect_uri": REDIRECT_URI,
+        "code": code,
+    })
+    data = resp.json()
+    print(f"[응답] {data}")
+
+    if "refresh_token" not in data:
+        print("❌ 토큰 발급 실패:", data)
+        return
+
+    print("\n====== GitHub Secrets에 저장할 값 ======")
+    print(f"KAKAO_REST_API_KEY  = {api_key}")
     print(f"KAKAO_REFRESH_TOKEN = {data['refresh_token']}")
-    print("======================================")
-    print("\ndevelopers.kakao.com → 내 앱 → 설정 → Redirect URI에")
-    print(f"  {REDIRECT_URI}  추가 필요!")
+    print("=========================================")
+
+
+if __name__ == "__main__":
+    main()
