@@ -394,6 +394,9 @@ def main():
 
     print(f"[{__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M')}] 모니터링 시작")
 
+    # ntfy 연결 테스트
+    send_ntfy(ntfy_topic, "채용 모니터링 시작!")
+
     seen = load_seen()
     new_count = 0
 
