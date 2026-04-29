@@ -60,16 +60,12 @@ class Job:
 
 # ── ntfy 알림 ────────────────────────────────────────────────
 def send_ntfy(topic: str, text: str):
-    requests.post(
+    resp = requests.post(
         f"https://ntfy.sh/{topic}",
         data=text.encode("utf-8"),
-        headers={
-            "Title": "New Job Alert",
-            "Priority": "high",
-            "Tags": "briefcase",
-        },
         timeout=10,
     )
+    print(f"  ntfy [{resp.status_code}]: {resp.text[:80]}")
 
 
 # ── seen_jobs 저장/로드 ──────────────────────────────────────
