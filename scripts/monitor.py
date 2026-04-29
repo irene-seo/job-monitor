@@ -63,7 +63,11 @@ def send_ntfy(topic: str, text: str):
     requests.post(
         f"https://ntfy.sh/{topic}",
         data=text.encode("utf-8"),
-        headers={"Title": "새 채용공고!", "Priority": "high"},
+        headers={
+            "Title": "New Job Alert",
+            "Priority": "high",
+            "Tags": "briefcase",
+        },
         timeout=10,
     )
 
